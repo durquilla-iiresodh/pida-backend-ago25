@@ -2,3 +2,5 @@ fastapi
 uvicorn[standard]
 python-dotenv
 google-cloud-aiplatform
+pydantic-settings
+google-cloud-logging
