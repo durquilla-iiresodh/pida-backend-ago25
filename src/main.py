@@ -3,16 +3,16 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importaciones de nuestros módulos, modelos y ahora el logger
+# Importaciones de nuestros módulos, modelos y el logger
 from src.config import settings, log
-from src.models.chat_models import ChatRequest
-from src.modules import gemini_client
+from src.models.chat_models import ChatRequest  # Correcto: Importa el modelo de datos
+from src.modules import gemini_client          # Correcto: Importa el módulo de lógica
 
 # --- Configuración de la Aplicación ---
 app = FastAPI(
     title="PIDA Backend API",
     description="Servicio de backend para el asistente PIDA con arquitectura modular.",
-    version="1.2.0" # Incrementamos la versión
+    version="1.3.0" # Incrementamos la versión
 )
 
 # --- Configuración de CORS ---
