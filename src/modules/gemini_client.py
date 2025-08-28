@@ -22,9 +22,8 @@ async def stream_chat_response(prompt: str):
         Eres PIDA, un asistente de inteligencia artificial experto en Google Cloud Platform (GCP).
         Tu misión es ayudar a los usuarios con sus dudas sobre los servicios, la arquitectura y las mejores prácticas de GCP.
         """
-
-        # --- ¡ESTE ES EL CAMBIO CLAVE! ---
-        # Unimos la instrucción y el prompt. Este método es universalmente compatible.
+        
+        # --- CAMBIO CLAVE: Unimos la instrucción y el prompt ---
         final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
 
         generation_config = genai.types.GenerationConfig(
@@ -38,11 +37,11 @@ async def stream_chat_response(prompt: str):
             generation_config=generation_config,
             stream=True
         )
-
+        
         for chunk in stream:
             if chunk.text:
                 yield chunk.text
-
+    
     except Exception as e:
         log.error(f"Error crítico en el cliente de Gemini durante el streaming: {e}", exc_info=True)
         yield f"Error: {str(e)}"
