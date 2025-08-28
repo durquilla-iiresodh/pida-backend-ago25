@@ -1,18 +1,18 @@
 import json
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importaciones de nuestros módulos, modelos y el logger
+# Importamos nuestros módulos y modelos
 from src.config import settings, log
-from src.models.chat_models import ChatRequest  # Correcto: Importa el modelo de datos
-from src.modules import gemini_client          # Correcto: Importa el módulo de lógica
+from src.models.chat_models import ChatRequest
+from src.modules import gemini_client
 
 # --- Configuración de la Aplicación ---
 app = FastAPI(
     title="PIDA Backend API",
     description="Servicio de backend para el asistente PIDA con arquitectura modular.",
-    version="1.3.0" # Incrementamos la versión
+    version="1.4.0" 
 )
 
 # --- Configuración de CORS ---
@@ -42,21 +42,21 @@ async def chat_handler(chat_request: ChatRequest):
     
     async def stream_generator():
         try:
-            # Evento de inicio para el frontend
             yield json.dumps({"type": "start", "searchMode": "none"}) + "\n"
-
-            # Delegamos TODA la lógica a nuestro módulo cliente de Gemini
             async for text_chunk in gemini_client.stream_chat_response(chat_request.prompt):
                 yield json.dumps({"type": "chunk", "text": text_chunk}) + "\n"
-        
         except Exception as e:
-            # Usamos exc_info=True para capturar el stack trace completo en los logs de GCP
             log.error(f"Error durante el streaming en el handler: {e}", exc_info=True)
             yield json.dumps({"type": "error", "message": str(e)}) + "\n"
-        
         finally:
-            # Evento de fin para el frontend
             log.info("Streaming de chat finalizado correctamente.")
             yield json.dumps({"type": "end"}) + "\n"
 
-    return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
+    # --- CAMBIO CLAVE: Añadimos cabeceras para forzar el no-buffering ---
+    headers = {
+        "Content-Type": "application/x-ndjson",
+        "X-Accel-Buffering": "no", # Específico para Nginx, pero muchos proxies lo respetan
+        "Cache-Control": "no-cache",
+    }
+
+    return StreamingResponse(stream_generator(), headers=headers)
