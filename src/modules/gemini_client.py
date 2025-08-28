@@ -1,15 +1,11 @@
 import google.generativeai as genai
 from src.config import settings, log
 
-# --- Configuración e Inicialización del Cliente ---
-# La nueva librería se configura una sola vez y se conecta a Vertex AI
-# gracias a las variables de entorno que definiremos en el despliegue.
-log.info(f"--- INICIALIZANDO SDK google-genai para Vertex AI en el proyecto {settings.PROJECT_ID} ---")
+# --- Inicialización del Cliente ---
+# La librería se configura automáticamente a través de las variables de entorno de Cloud Run.
+# Simplemente necesitamos instanciar el modelo.
+log.info(f"--- INICIALIZANDO SDK google-genai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
-    genai.configure(
-        project=settings.PROJECT_ID,
-        location=settings.LOCATION,
-    )
     model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
     log.info(f"--- MODELO '{settings.GEMINI_MODEL_NAME}' INICIALIZADO CORRECTAMENTE ---")
 except Exception as e:
@@ -20,7 +16,7 @@ except Exception as e:
 async def stream_chat_response(prompt: str):
     """
     Genera una respuesta de chat en streaming utilizando el modelo Gemini
-    a través del nuevo SDK google-genai.
+    a través del SDK google-genai.
     """
     if not model:
         log.error("El modelo Gemini no está disponible. Revisa los logs de inicialización.")
@@ -40,7 +36,6 @@ async def stream_chat_response(prompt: str):
         6.  **Enfoque**: Céntrate en responder preguntas relacionadas con GCP.
         """
         
-        # La nueva sintaxis pasa la configuración en un objeto 'generation_config'
         generation_config = genai.types.GenerationConfig(
             max_output_tokens=settings.MAX_OUTPUT_TOKENS,
             temperature=settings.TEMPERATURE
