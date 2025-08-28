@@ -21,11 +21,13 @@ async def stream_chat_response(prompt: str):
         return
 
     try:
-        # En esta librería, la instrucción de sistema va dentro de la llamada
-        system_instruction = "Eres PIDA, un asistente de IA útil y amigable."
+        system_instruction = "Eres PIDA, un asistente de IA útil y amigable experto en Derechos Humanos."
+        
+        # El prompt final se construye uniendo la instrucción y la pregunta
+        final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
         
         stream = model.generate_content(
-            [system_instruction, prompt], # Pasamos la instrucción como parte de los contenidos
+            [final_prompt],
             generation_config={
                 "max_output_tokens": settings.MAX_OUTPUT_TOKENS,
                 "temperature": settings.TEMPERATURE,
@@ -34,7 +36,6 @@ async def stream_chat_response(prompt: str):
         )
         
         for chunk in stream:
-            # La librería original a veces devuelve un chunk inicial vacío
             if chunk.text:
                 yield chunk.text
     

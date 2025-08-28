@@ -3,5 +3,5 @@ uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
 pydantic-settings==2.2.1
 google-cloud-logging==3.9.0
-# Volvemos a la librería original de Vertex AI
+# Volvemos a la librería original y nativa de Vertex AI
 google-cloud-aiplatform>=1.38.0
