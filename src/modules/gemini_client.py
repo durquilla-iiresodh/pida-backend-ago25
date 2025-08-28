@@ -1,6 +1,8 @@
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from src.config import settings, log
+# --- NUEVA LÍNEA: Importamos la instrucción desde nuestro nuevo archivo ---
+from src.core.prompts import PIDA_SYSTEM_PROMPT
 
 log.info(f"--- INICIALIZANDO SDK vertexai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
@@ -11,17 +13,18 @@ except Exception as e:
     log.critical(f"--- ERROR CRÍTICO AL INICIALIZAR SDK de Vertex AI: {e} ---")
     model = None
 
-# --- CAMBIO: La función ahora no es un generador, devuelve un string ---
+
 async def get_chat_response(prompt: str) -> str:
     if not model:
         log.error("El modelo Gemini no está disponible. Revisa los logs de inicialización.")
         return "Error: El modelo de IA no pudo ser cargado. Contacte al administrador."
 
     try:
-        system_instruction = "Eres PIDA, un asistente de IA útil y amigable experto en Derechos Humanos."
+        # --- CAMBIO: Usamos la constante importada ---
+        system_instruction = PIDA_SYSTEM_PROMPT
+        
         final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
         
-        # --- CAMBIO: 'stream=False' es el comportamiento por defecto, la llamada es más simple ---
         response = model.generate_content(
             [final_prompt],
             generation_config={
