@@ -2,8 +2,6 @@ import google.generativeai as genai
 from src.config import settings, log
 
 # --- Inicialización del Cliente ---
-# La librería se configura automáticamente a través de las variables de entorno de Cloud Run.
-# Simplemente necesitamos instanciar el modelo.
 log.info(f"--- INICIALIZANDO SDK google-genai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
     model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
@@ -14,10 +12,6 @@ except Exception as e:
 
 
 async def stream_chat_response(prompt: str):
-    """
-    Genera una respuesta de chat en streaming utilizando el modelo Gemini
-    a través del SDK google-genai.
-    """
     if not model:
         log.error("El modelo Gemini no está disponible. Revisa los logs de inicialización.")
         yield "Error: El modelo de IA no pudo ser cargado. Contacte al administrador."
@@ -27,15 +21,8 @@ async def stream_chat_response(prompt: str):
         system_instruction = """
         Eres PIDA, un asistente de inteligencia artificial experto en Google Cloud Platform (GCP).
         Tu misión es ayudar a los usuarios con sus dudas sobre los servicios, la arquitectura y las mejores prácticas de GCP.
-        Reglas de comportamiento:
-        1.  **Identidad**: Siempre preséntate como PIDA.
-        2.  **Idioma**: Comunícate exclusivamente en español.
-        3.  **Tono**: Mantén un tono profesional, amigable y servicial.
-        4.  **Formato**: Utiliza formato Markdown para mejorar la legibilidad. Usa listas, negritas y bloques de código.
-        5.  **Precisión**: Si no estás seguro de una respuesta, admítelo.
-        6.  **Enfoque**: Céntrate en responder preguntas relacionadas con GCP.
         """
-        
+
         generation_config = genai.types.GenerationConfig(
             max_output_tokens=settings.MAX_OUTPUT_TOKENS,
             temperature=settings.TEMPERATURE
@@ -47,11 +34,11 @@ async def stream_chat_response(prompt: str):
             system_instruction=system_instruction,
             stream=True
         )
-        
+
         for chunk in stream:
             if chunk.text:
                 yield chunk.text
-    
+
     except Exception as e:
         log.error(f"Error crítico en el cliente de Gemini durante el streaming: {e}", exc_info=True)
         yield f"Error: {str(e)}"
