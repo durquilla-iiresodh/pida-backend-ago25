@@ -4,7 +4,6 @@ from src.config import settings, log
 # --- Inicialización del Cliente ---
 log.info(f"--- INICIALIZANDO SDK google-genai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
-    # La librería se configura automáticamente con las variables de entorno de Cloud Run.
     model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
     log.info(f"--- MODELO '{settings.GEMINI_MODEL_NAME}' INICIALIZADO CORRECTAMENTE ---")
 except Exception as e:
@@ -24,15 +23,19 @@ async def stream_chat_response(prompt: str):
         Tu misión es ayudar a los usuarios con sus dudas sobre los servicios, la arquitectura y las mejores prácticas de GCP.
         """
 
+        # --- ¡ESTE ES EL CAMBIO CLAVE! ---
+        # Unimos la instrucción y el prompt. Este método es universalmente compatible.
+        final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
+
         generation_config = genai.types.GenerationConfig(
             max_output_tokens=settings.MAX_OUTPUT_TOKENS,
             temperature=settings.TEMPERATURE
         )
 
+        # La llamada a la función ya NO incluye el parámetro 'system_instruction'
         stream = model.generate_content(
-            contents=[prompt],
+            contents=[final_prompt],
             generation_config=generation_config,
-            system_instruction=system_instruction,
             stream=True
         )
 
