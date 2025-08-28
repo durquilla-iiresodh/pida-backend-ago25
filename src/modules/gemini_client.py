@@ -2,9 +2,10 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 from src.config import settings, log
 
-# --- Inicialización del Cliente con la librería original ---
+# --- Inicialización del Cliente con la librería original y variables correctas ---
 log.info(f"--- INICIALIZANDO SDK vertexai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
+    # Ahora usamos los nombres correctos leídos desde el entorno
     vertexai.init(project=settings.GOOGLE_CLOUD_PROJECT, location=settings.GOOGLE_CLOUD_LOCATION)
     model = GenerativeModel(settings.GEMINI_MODEL_NAME)
     log.info(f"--- MODELO '{settings.GEMINI_MODEL_NAME}' INICIALIZADO CORRECTAMENTE ---")
@@ -20,14 +21,11 @@ async def stream_chat_response(prompt: str):
         return
 
     try:
-        system_instruction = """
-        Eres PIDA, un asistente de inteligencia artificial experto en Google Cloud Platform (GCP).
-        Tu misión es ayudar a los usuarios con sus dudas sobre los servicios, la arquitectura y las mejores prácticas de GCP.
-        """
+        # En esta librería, la instrucción de sistema va dentro de la llamada
+        system_instruction = "Eres PIDA, un asistente de IA útil y amigable."
         
-        # La llamada a la función con esta librería es ligeramente diferente
         stream = model.generate_content(
-            [prompt],
+            [system_instruction, prompt], # Pasamos la instrucción como parte de los contenidos
             generation_config={
                 "max_output_tokens": settings.MAX_OUTPUT_TOKENS,
                 "temperature": settings.TEMPERATURE,
@@ -36,6 +34,7 @@ async def stream_chat_response(prompt: str):
         )
         
         for chunk in stream:
+            # La librería original a veces devuelve un chunk inicial vacío
             if chunk.text:
                 yield chunk.text
     
