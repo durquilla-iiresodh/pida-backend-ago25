@@ -1,13 +1,15 @@
-import google.generativeai as genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 from src.config import settings, log
 
-# --- Inicialización del Cliente ---
-log.info(f"--- INICIALIZANDO SDK google-genai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
+# --- Inicialización del Cliente con la librería original ---
+log.info(f"--- INICIALIZANDO SDK vertexai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
-    model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
+    vertexai.init(project=settings.GOOGLE_CLOUD_PROJECT, location=settings.GOOGLE_CLOUD_LOCATION)
+    model = GenerativeModel(settings.GEMINI_MODEL_NAME)
     log.info(f"--- MODELO '{settings.GEMINI_MODEL_NAME}' INICIALIZADO CORRECTAMENTE ---")
 except Exception as e:
-    log.critical(f"--- ERROR CRÍTICO AL INICIALIZAR EL SDK de Gen AI: {e} ---")
+    log.critical(f"--- ERROR CRÍTICO AL INICIALIZAR SDK de Vertex AI: {e} ---")
     model = None
 
 
@@ -23,18 +25,13 @@ async def stream_chat_response(prompt: str):
         Tu misión es ayudar a los usuarios con sus dudas sobre los servicios, la arquitectura y las mejores prácticas de GCP.
         """
         
-        # --- CAMBIO CLAVE: Unimos la instrucción y el prompt ---
-        final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
-
-        generation_config = genai.types.GenerationConfig(
-            max_output_tokens=settings.MAX_OUTPUT_TOKENS,
-            temperature=settings.TEMPERATURE
-        )
-
-        # La llamada a la función ya NO incluye el parámetro 'system_instruction'
+        # La llamada a la función con esta librería es ligeramente diferente
         stream = model.generate_content(
-            contents=[final_prompt],
-            generation_config=generation_config,
+            [prompt],
+            generation_config={
+                "max_output_tokens": settings.MAX_OUTPUT_TOKENS,
+                "temperature": settings.TEMPERATURE,
+            },
             stream=True
         )
         
