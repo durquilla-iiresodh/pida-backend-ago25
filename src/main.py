@@ -1,9 +1,10 @@
 import json
-from fastapi import FastAPI, Query
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings, log
+from src.models.chat_models import ChatRequest
 from src.modules import gemini_client
 
 app = FastAPI(title="PIDA Backend API")
@@ -20,32 +21,16 @@ app.add_middleware(
 def read_root():
     return {"status": "ok", "message": f"PIDA Backend funcionando con el modelo {settings.GEMINI_MODEL_NAME}."}
 
-# --- CAMBIO: El endpoint ahora es GET y recibe el prompt como parámetro en la URL ---
-@app.get("/chat", tags=["Chat"])
-async def chat_handler(prompt: str = Query(..., min_length=1)):
+# --- CAMBIO: El endpoint ahora es un POST normal que devuelve JSON ---
+@app.post("/chat", tags=["Chat"])
+async def chat_handler(chat_request: ChatRequest):
+    log.info(f"Recibida petición de chat (no-stream) con prompt de longitud: {len(chat_request.prompt)}")
     
-    log.info(f"Recibida petición de chat (SSE) con prompt de longitud: {len(prompt)}")
-    
-    async def stream_generator():
-        try:
-            # Cada mensaje debe empezar con "data: " y terminar con dos saltos de línea "\n\n"
-            start_event = f"data: {json.dumps({'type': 'start'})}\n\n"
-            yield start_event
-
-            async for text_chunk in gemini_client.stream_chat_response(prompt):
-                chunk_event = f"data: {json.dumps({'type': 'chunk', 'text': text_chunk})}\n\n"
-                yield chunk_event
-        
-        except Exception as e:
-            error_event = f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-            yield error_event
-            log.error(f"Error durante el streaming SSE: {e}", exc_info=True)
-        
-        finally:
-            # Enviamos un evento especial 'end' para que el cliente sepa que debe cerrar la conexión
-            end_event = f"data: {json.dumps({'type': 'end'})}\n\n"
-            yield end_event
-            log.info("Streaming SSE de chat finalizado.")
-
-    # El media_type 'text/event-stream' es la clave para que la red lo trate como un stream real
-    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+    try:
+        # Llamamos a la nueva función y esperamos la respuesta completa
+        response_text = await gemini_client.get_chat_response(chat_request.prompt)
+        # Devolvemos la respuesta en un objeto JSON
+        return JSONResponse(content={"text": response_text})
+    except Exception as e:
+        log.error(f"Error en el handler de chat: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
