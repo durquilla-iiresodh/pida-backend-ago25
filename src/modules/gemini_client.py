@@ -4,6 +4,7 @@ from src.config import settings, log
 # --- Inicialización del Cliente ---
 log.info(f"--- INICIALIZANDO SDK google-genai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
 try:
+    # La librería se configura automáticamente con las variables de entorno de Cloud Run.
     model = genai.GenerativeModel(settings.GEMINI_MODEL_NAME)
     log.info(f"--- MODELO '{settings.GEMINI_MODEL_NAME}' INICIALIZADO CORRECTAMENTE ---")
 except Exception as e:
