@@ -2,6 +2,9 @@ import httpx
 from bs4 import BeautifulSoup
 from src.config import settings, log
 
+# Mensaje de error constante para una fácil comparación
+FETCH_ERROR_MESSAGE = "No se pudo extraer contenido de esta fuente."
+
 async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
     """Función auxiliar para descargar y extraer el texto de una URL."""
     try:
@@ -14,47 +17,50 @@ async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
         paragraphs = [p.get_text() for p in soup.find_all('p')]
         content = " ".join(paragraphs).replace("\n", " ").strip()
         
-        return content[:5000] if content else "No se pudo extraer contenido de esta fuente."
+        return content[:5000] if content else FETCH_ERROR_MESSAGE
     except Exception as e:
         log.warning(f"No se pudo obtener el contenido de la URL {url}: {e}")
-        return "No se pudo extraer contenido de esta fuente."
+        return FETCH_ERROR_MESSAGE
 
 async def search_for_sources(query: str, num_results: int = 3) -> str:
     """
-    Realiza una búsqueda en el PSE y extrae el contenido de las páginas.
+    Realiza una búsqueda en el PSE y extrae el contenido de las páginas,
+    con un fallback al snippet si la extracción falla.
     """
     search_url = "https://www.googleapis.com/customsearch/v1"
     params = {"key": settings.PSE_API_KEY, "cx": settings.PSE_ID, "q": query, "num": num_results}
 
-    # --- CAMBIO CLAVE: Creamos el cliente ANTES y lo mantenemos abierto ---
     async with httpx.AsyncClient() as client:
         try:
-            # Primero, hacemos la búsqueda en el PSE
             response = await client.get(search_url, params=params)
             response.raise_for_status()
             results = response.json()
 
             if "items" not in results or not results["items"]:
-                log.warning(f"La búsqueda de PSE para '{query}' no arrojó resultados.")
                 return "No se encontraron resultados de búsqueda externos."
 
             formatted_results = "\n\n### Contexto de Búsqueda Externa:\n"
-            # Ahora, iteramos y usamos el MISMO cliente para descargar el contenido
             for i, item in enumerate(results["items"]):
                 title = item.get("title", "Sin Título")
                 link = item.get("link", "#")
+                snippet = item.get("snippet", "No hay descripción.").replace("\n", " ")
                 
+                # Intentamos obtener el contenido completo
                 page_content = await _fetch_and_parse_url(link, client)
+                
+                # --- CAMBIO CLAVE: Lógica de Fallback ---
+                # Si la extracción falló, usamos el snippet como plan B.
+                if page_content == FETCH_ERROR_MESSAGE:
+                    final_content = snippet
+                else:
+                    final_content = page_content
                 
                 formatted_results += f"{i+1}. Título: {title}\n"
                 formatted_results += f"   Enlace: {link}\n"
-                formatted_results += f"   Contenido de la Página: {page_content}\n"
+                formatted_results += f"   Contenido de la Página: {final_content}\n"
             
             return formatted_results
 
-        except httpx.HTTPStatusError as e:
-            log.error(f"Error en la API de PSE: {e.response.status_code} - {e.response.text}")
-            return "Hubo un error al realizar la búsqueda externa."
         except Exception as e:
             log.error(f"Error inesperado en el cliente de PSE: {e}")
-            return "Hubo un error inesperado al realizar la búsqueda externa."
+            return "Hubo un error al realizar la búsqueda externa."
