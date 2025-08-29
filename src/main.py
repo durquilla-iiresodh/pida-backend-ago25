@@ -30,13 +30,15 @@ async def prepare_prompt_handler(chat_request: ChatRequest, request: Request):
         country_code = request.headers.get('X-Country-Code', None)
         log.info(f"Recibida petición para preparar prompt. País: {country_code}")
         
-        # --- NUEVO LOG ---
         log.info(f"[DIAGNÓSTICO] Historial recibido del Proxy Node.js: {chat_request.history}")
 
         search_context = await pse_client.search_for_sources(chat_request.prompt, num_results=5)
         
+        # --- MODIFICACIÓN CLAVE ---
+        # Añadimos una instrucción explícita para que el modelo considere el historial.
+        instructional_wrapper = "Considerando la conversación previa, y basándote exclusivamente en el siguiente contexto de búsqueda externa, responde la pregunta del usuario."
         location_context = f"Contexto geográfico: {country_code}" if country_code else "Contexto geográfico: Desconocido."
-        final_prompt = f"{location_context}\n\n{search_context}\n\n---\n\nPregunta: {chat_request.prompt}"
+        final_prompt = f"{instructional_wrapper}\n\n{location_context}\n\n{search_context}\n\n---\n\nPregunta del usuario: {chat_request.prompt}"
 
         history_for_gemini = gemini_client._prepare_history_for_vertex(chat_request.history)
         
