@@ -28,7 +28,6 @@ def _prepare_history_for_vertex(history: List[ChatMessage]) -> List[Content]:
         vertex_history.append(Content(role=message.role, parts=[Part.from_text(message.content)]))
     return vertex_history
 
-# MODIFICADO: Ahora es un generador asíncrono que devuelve un stream de strings
 async def get_chat_response_stream(prompt: str, history: List[ChatMessage], country_code: str | None) -> AsyncGenerator[str, None]:
     if not model:
         log.error("El modelo Gemini no está disponible. Revisa los logs de inicialización.")
@@ -48,7 +47,6 @@ async def get_chat_response_stream(prompt: str, history: List[ChatMessage], coun
 
         log.info(f"Prompt final enviado al modelo (primeros 500 chars): {final_user_prompt[:500]}")
 
-        # MODIFICADO: Se añade stream=True para obtener la respuesta en fragmentos
         response_stream = chat.send_message(
             [final_user_prompt],
             stream=True,
@@ -59,8 +57,9 @@ async def get_chat_response_stream(prompt: str, history: List[ChatMessage], coun
             }
         )
         
-        # MODIFICADO: Iteramos sobre los fragmentos y los 'cedemos' (yield) uno por uno
-        async for chunk in response_stream:
+        # --- CORRECCIÓN CLAVE ---
+        # Cambiamos 'async for' por 'for'. La librería devuelve un generador síncrono.
+        for chunk in response_stream:
             yield chunk.text
     
     except Exception as e:
