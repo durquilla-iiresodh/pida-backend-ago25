@@ -21,7 +21,7 @@ async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
         log.warning(f"No se pudo obtener el contenido de la URL {url}: {e}")
         return FETCH_ERROR_MESSAGE
 
-async def search_for_sources(query: str, num_results: int = 5) -> str:
+async def search_for_sources(query: str, num_results: int = 5) -> str: # num_results por defecto a 5
     """
     Realiza una búsqueda en el PSE y extrae el contenido de las páginas,
     con un fallback al snippet si la extracción falla.

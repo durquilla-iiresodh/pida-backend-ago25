@@ -1,10 +1,10 @@
 import json
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings, log
-from src.models.chat_models import ChatRequest # <-- Se usa el modelo actualizado
+from src.models.chat_models import ChatRequest
 from src.modules import gemini_client
 
 app = FastAPI(title="PIDA Backend API")
@@ -22,14 +22,15 @@ def read_root():
     return {"status": "ok", "message": f"PIDA Backend funcionando con el modelo {settings.GEMINI_MODEL_NAME}."}
 
 @app.post("/chat", tags=["Chat"])
-async def chat_handler(chat_request: ChatRequest):
-    log.info(f"Recibida petición de chat con prompt de longitud: {len(chat_request.prompt)}")
+async def chat_handler(chat_request: ChatRequest, request: Request):
+    # Obtenemos el código del país desde las cabeceras que añade Cloud Run
+    country_code = request.headers.get('X-Country-Code', None)
+    log.info(f"Recibida petición. País detectado: {country_code}")
     
     try:
-        # --- CAMBIO: Pasamos la ubicación recibida a la función del cliente ---
         response_text = await gemini_client.get_chat_response(
             prompt=chat_request.prompt, 
-            location=chat_request.location
+            country_code=country_code
         )
         return JSONResponse(content={"text": response_text})
     except Exception as e:

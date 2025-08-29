@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     TEMPERATURE: float = 0.5
     TOP_P: float = 0.95
 
-    # --- NUEVAS VARIABLES PARA EL PSE ---
+    # Variables para el PSE
     PSE_API_KEY: str
     PSE_ID: str
 
