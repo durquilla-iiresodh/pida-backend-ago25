@@ -1,7 +1,7 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class ChatRequest(BaseModel):
-    """
-    Define la estructura de datos que se espera en una petición al endpoint /chat.
-    """
     prompt: str
+    # Nuevo campo opcional para la ubicación
+    location: Optional[str] = None
