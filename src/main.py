@@ -1,3 +1,5 @@
+# src/main.py
+
 import json
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -25,11 +27,12 @@ def read_root():
 async def chat_handler(chat_request: ChatRequest, request: Request):
     # Obtenemos el código del país desde las cabeceras que añade Cloud Run
     country_code = request.headers.get('X-Country-Code', None)
-    log.info(f"Recibida petición. País detectado: {country_code}")
+    log.info(f"Recibida petición. País detectado: {country_code}. Historial con {len(chat_request.history)} mensajes.")
     
     try:
         response_text = await gemini_client.get_chat_response(
-            prompt=chat_request.prompt, 
+            prompt=chat_request.prompt,
+            history=chat_request.history, 
             country_code=country_code
         )
         return JSONResponse(content={"text": response_text})
