@@ -1,7 +1,6 @@
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from src.config import settings, log
-# --- NUEVA LÍNEA: Importamos la instrucción desde nuestro nuevo archivo ---
 from src.core.prompts import PIDA_SYSTEM_PROMPT
 
 log.info(f"--- INICIALIZANDO SDK vertexai para el modelo '{settings.GEMINI_MODEL_NAME}' ---")
@@ -20,16 +19,16 @@ async def get_chat_response(prompt: str) -> str:
         return "Error: El modelo de IA no pudo ser cargado. Contacte al administrador."
 
     try:
-        # --- CAMBIO: Usamos la constante importada ---
         system_instruction = PIDA_SYSTEM_PROMPT
-        
         final_prompt = f"{system_instruction}\n\n---\n\nPregunta del usuario: {prompt}"
         
         response = model.generate_content(
             [final_prompt],
             generation_config={
+                # --- CONFIGURACIÓN DE GENERACIÓN ACTUALIZADA ---
                 "max_output_tokens": settings.MAX_OUTPUT_TOKENS,
                 "temperature": settings.TEMPERATURE,
+                "top_p": settings.TOP_P,
             }
         )
         
