@@ -9,6 +9,7 @@ from vertexai.generative_models import Content
 from src.config import settings, log
 from src.models.chat_models import ChatRequest
 from src.modules import pse_client, gemini_client
+from src.core.prompts import PIDA_SYSTEM_PROMPT # <-- IMPORTANTE: Importamos el prompt
 
 app = FastAPI(title="PIDA Backend API - Logic Only")
 
@@ -32,17 +33,15 @@ async def prepare_prompt_handler(chat_request: ChatRequest, request: Request):
         
         log.info(f"[DIAGNÓSTICO] Historial recibido del Proxy Node.js: {chat_request.history}")
 
-        # --- CAMBIO CLAVE: Reactivamos la búsqueda externa ---
         search_context = await pse_client.search_for_sources(chat_request.prompt, num_results=5)
         
-        instructional_wrapper = "Considerando la conversación previa, y basándote en el siguiente contexto de búsqueda externa, responde la pregunta del usuario."
-        location_context = f"Contexto geográfico: {country_code}" if country_code else "Contexto geográfico: Desconocido."
-        # Eliminamos el wrapper del prompt final, ya que las nuevas instrucciones del sistema son más claras
-        final_prompt = f"{location_context}\n\nContexto de Búsqueda Externa:\n{search_context}\n\n---\n\nPregunta del usuario: {chat_request.prompt}"
+        final_prompt = f"Contexto geográfico: {country_code}\n\nContexto de Búsqueda Externa:\n{search_context}\n\n---\n\nPregunta del usuario: {chat_request.prompt}"
 
         history_for_gemini = gemini_client._prepare_history_for_vertex(chat_request.history)
         
+        # --- CAMBIO CLAVE: Añadimos el System Prompt a la respuesta ---
         return JSONResponse(content={
+            "system_prompt": PIDA_SYSTEM_PROMPT,
             "final_prompt": final_prompt,
             "history_for_gemini": history_for_gemini
         })
