@@ -32,16 +32,13 @@ async def prepare_prompt_handler(chat_request: ChatRequest, request: Request):
         
         log.info(f"[DIAGNÓSTICO] Historial recibido del Proxy Node.js: {chat_request.history}")
 
-        # --- MODIFICACIÓN CLAVE PARA LA PRUEBA ---
-        # 1. Desactivamos temporalmente la búsqueda externa real
-        # search_context = await pse_client.search_for_sources(chat_request.prompt, num_results=5)
+        # --- CAMBIO CLAVE: Reactivamos la búsqueda externa ---
+        search_context = await pse_client.search_for_sources(chat_request.prompt, num_results=5)
         
-        # 2. La reemplazamos con un texto simple
-        search_context = "Contexto de búsqueda externa deshabilitado para esta prueba."
-        
-        instructional_wrapper = "Considerando la conversación previa, y basándote exclusivamente en el siguiente contexto de búsqueda externa, responde la pregunta del usuario."
+        instructional_wrapper = "Considerando la conversación previa, y basándote en el siguiente contexto de búsqueda externa, responde la pregunta del usuario."
         location_context = f"Contexto geográfico: {country_code}" if country_code else "Contexto geográfico: Desconocido."
-        final_prompt = f"{instructional_wrapper}\n\n{location_context}\n\n{search_context}\n\n---\n\nPregunta del usuario: {chat_request.prompt}"
+        # Eliminamos el wrapper del prompt final, ya que las nuevas instrucciones del sistema son más claras
+        final_prompt = f"{location_context}\n\nContexto de Búsqueda Externa:\n{search_context}\n\n---\n\nPregunta del usuario: {chat_request.prompt}"
 
         history_for_gemini = gemini_client._prepare_history_for_vertex(chat_request.history)
         
