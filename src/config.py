@@ -1,3 +1,5 @@
+# src/config.py
+
 import logging
 import google.cloud.logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,14 +17,14 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_LOCATION: str
 
     # Variables del Modelo Gemini
-    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"
+    GEMINI_MODEL_NAME: str = "gemini-2.5-flash"  # CORREGIDO: Actualizado según la nueva regla de oro.
     MAX_OUTPUT_TOKENS: int = 16384
     TEMPERATURE: float = 0.5
-    TOP_P: float = 0.95
+    TOP_P: float = 0.9
 
     # Variables para el PSE
     PSE_API_KEY: str
     PSE_ID: str
 
 settings = Settings()
-log.info(f"Configuración cargada para el proyecto: {settings.GOOGLE_CLOUD_PROJECT}")
+log.info(f"Configuración cargada para el proyecto: {settings.GOOGLE_CLOUD_PROJECT} usando el modelo {settings.GEMINI_MODEL_NAME}")
