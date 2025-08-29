@@ -1,3 +1,5 @@
+# src/modules/pse_client.py
+
 import httpx
 from bs4 import BeautifulSoup
 from src.config import settings, log
@@ -21,7 +23,7 @@ async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
         log.warning(f"No se pudo obtener el contenido de la URL {url}: {e}")
         return FETCH_ERROR_MESSAGE
 
-async def search_for_sources(query: str, num_results: int = 5) -> str: # num_results por defecto a 5
+async def search_for_sources(query: str, num_results: int = 5) -> str:
     """
     Realiza una búsqueda en el PSE y extrae el contenido de las páginas,
     con un fallback al snippet si la extracción falla.
@@ -39,7 +41,7 @@ async def search_for_sources(query: str, num_results: int = 5) -> str: # num_res
                 return "No se encontraron resultados de búsqueda externos."
 
             formatted_results = "\n\n### Contexto de Búsqueda Externa:\n"
-            for i, item in enumerate(results["items"]):
+            for item in results["items"]: # MODIFICADO: Ya no necesitamos el índice 'i'
                 title = item.get("title", "Sin Título")
                 link = item.get("link", "#")
                 snippet = item.get("snippet", "No hay descripción.").replace("\n", " ")
@@ -48,9 +50,12 @@ async def search_for_sources(query: str, num_results: int = 5) -> str: # num_res
                 
                 final_content = page_content if page_content != FETCH_ERROR_MESSAGE else snippet
                 
-                formatted_results += f"{i+1}. Título: {title}\n"
-                formatted_results += f"   Enlace: {link}\n"
-                formatted_results += f"   Contenido de la Página: {final_content}\n"
+                # --- MODIFICACIÓN CLAVE ---
+                # 1. Se eliminó la numeración (ej. "1. ").
+                # 2. Se combinó Título y Enlace en un solo formato Markdown: **[Título](URL)**
+                # Esto coincide exactamente con lo que el prompt del sistema le pide al modelo.
+                formatted_results += f"Título: **[{title}]({link})**\n"
+                formatted_results += f"Contenido de la Página: {final_content}\n\n" # Añadido un salto de línea extra para separar fuentes
             
             return formatted_results
 
