@@ -2,7 +2,7 @@
 
 import json
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse # MODIFICADO: Importamos StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings, log
@@ -25,17 +25,27 @@ def read_root():
 
 @app.post("/chat", tags=["Chat"])
 async def chat_handler(chat_request: ChatRequest, request: Request):
-    # Obtenemos el código del país desde las cabeceras que añade Cloud Run
     country_code = request.headers.get('X-Country-Code', None)
-    log.info(f"Recibida petición. País detectado: {country_code}. Historial con {len(chat_request.history)} mensajes.")
+    log.info(f"Recibida petición de stream. País: {country_code}. Historial con {len(chat_request.history)} mensajes.")
     
-    try:
-        response_text = await gemini_client.get_chat_response(
-            prompt=chat_request.prompt,
-            history=chat_request.history, 
-            country_code=country_code
-        )
-        return JSONResponse(content={"text": response_text})
-    except Exception as e:
-        log.error(f"Error en el handler de chat: {e}", exc_info=True)
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    # MODIFICADO: Creamos un generador para el streaming
+    async def stream_generator():
+        try:
+            # Obtenemos el generador de respuesta desde el cliente de Gemini
+            response_stream = gemini_client.get_chat_response_stream(
+                prompt=chat_request.prompt,
+                history=chat_request.history, 
+                country_code=country_code
+            )
+            
+            # Iteramos sobre cada fragmento de texto que nos llega
+            async for chunk_text in response_stream:
+                # Lo envolvemos en un formato de evento de servidor (SSE)
+                # El cliente buscará la línea "data:" para obtener el contenido.
+                yield f"data: {json.dumps({'text': chunk_text})}\n\n"
+        except Exception as e:
+            log.error(f"Error en el generador de stream: {e}", exc_info=True)
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    # Devolvemos un StreamingResponse que ejecutará nuestro generador
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
