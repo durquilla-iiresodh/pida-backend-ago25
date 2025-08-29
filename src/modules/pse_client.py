@@ -2,7 +2,6 @@ import httpx
 from bs4 import BeautifulSoup
 from src.config import settings, log
 
-# Mensaje de error constante para una fácil comparación
 FETCH_ERROR_MESSAGE = "No se pudo extraer contenido de esta fuente."
 
 async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
@@ -22,7 +21,7 @@ async def _fetch_and_parse_url(url: str, client: httpx.AsyncClient) -> str:
         log.warning(f"No se pudo obtener el contenido de la URL {url}: {e}")
         return FETCH_ERROR_MESSAGE
 
-async def search_for_sources(query: str, num_results: int = 3) -> str:
+async def search_for_sources(query: str, num_results: int = 5) -> str:
     """
     Realiza una búsqueda en el PSE y extrae el contenido de las páginas,
     con un fallback al snippet si la extracción falla.
@@ -45,15 +44,9 @@ async def search_for_sources(query: str, num_results: int = 3) -> str:
                 link = item.get("link", "#")
                 snippet = item.get("snippet", "No hay descripción.").replace("\n", " ")
                 
-                # Intentamos obtener el contenido completo
                 page_content = await _fetch_and_parse_url(link, client)
                 
-                # --- CAMBIO CLAVE: Lógica de Fallback ---
-                # Si la extracción falló, usamos el snippet como plan B.
-                if page_content == FETCH_ERROR_MESSAGE:
-                    final_content = snippet
-                else:
-                    final_content = page_content
+                final_content = page_content if page_content != FETCH_ERROR_MESSAGE else snippet
                 
                 formatted_results += f"{i+1}. Título: {title}\n"
                 formatted_results += f"   Enlace: {link}\n"
